@@ -1,3 +1,5 @@
+use std::error;
+
 use thiserror::Error;
 
 #[derive(Error, Debug)]
@@ -19,6 +21,9 @@ pub enum UnpackError {
 
     #[error("unsupported file format")]
     FileExtension,
+
+    #[error("error when reading file name string")]
+    StringError(#[from] std::string::FromUtf8Error),
 }
 
 #[derive(Error, Debug)]
@@ -29,4 +34,17 @@ pub enum ParseError {
     Compression,
     #[error("failed to parse extension format")]
     Extension,
+    #[error("failed to parse index data")]
+    Index,
+    #[error("failed to parse size data")]
+    Size,
+}
+
+#[derive(Error, Debug)]
+pub enum PackingError {
+    #[error(transparent)]
+    FileReadingError(#[from] std::path::StripPrefixError),
+
+    #[error(transparent)]
+    IoError(#[from] std::io::Error),
 }

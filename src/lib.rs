@@ -1,23 +1,19 @@
+use crate::err::UnpackError;
+use bytes::Buf;
 use std::fs::{self, DirBuilder};
 use std::io::{Read, Write};
 use std::path::PathBuf;
 use std::{collections::HashMap, ffi::OsString};
 
-use bytes::Buf;
-
-use crate::err::UnpackError;
-
 mod err;
 mod package;
+
 use package::*;
+pub use package::{Compression, Package, PackageVersion};
 
 const FILE_HEADER: [u8; 4] = [0xFF, 0x69, 0xFF, 0x69];
 const VERSION_0_0_0_1: [u8; 4] = [0x00, 0x00, 0x00, 0x01];
 const NO_COMPRESSION: [u8; 2] = [0x00, 0x00];
-
-fn version_from_bytes(bytes: &[u8]) -> (u8, u8, u8, u8) {
-    (bytes[0], bytes[1], bytes[2], bytes[3])
-}
 
 fn collect_files(dir: &std::path::Path) -> std::io::Result<Vec<(fs::DirEntry, PathBuf)>> {
     let mut ret = vec![];
@@ -34,7 +30,7 @@ fn collect_files(dir: &std::path::Path) -> std::io::Result<Vec<(fs::DirEntry, Pa
     Ok(ret)
 }
 
-pub fn package_dir(dir_path: PathBuf) -> std::io::Result<Package> {
+pub fn package_dir(dir_path: PathBuf) -> Result<Package, err::PackingError> {
     let dir_path = std::fs::canonicalize(dir_path)?;
     //println!("{dir_path:?}");
     let files = collect_files(&dir_path)?
@@ -45,29 +41,33 @@ pub fn package_dir(dir_path: PathBuf) -> std::io::Result<Package> {
             }
             None
         })
-        .filter(|(_f, p)| {
-            let ext = p.extension();
-            ext.is_some_and(|s| FileExt::try_from(s.to_str().unwrap()).is_ok())
-        })
+        // .filter(|(_f, p)| {
+        //     let ext = p.extension();
+        //     ext.is_some_and(|s| FileExt::try_from(s.to_str().unwrap()).is_ok())
+        // })
         .map(|(_f, p)| {
-            let full_path = p.canonicalize().unwrap();
-            let buf = std::fs::read(&full_path).unwrap();
+            let full_path = p.canonicalize()?;
+            let buf = std::fs::read(&full_path)?;
 
             //println!("path: {:?}, buf {:?}", f.path(), buf);
 
             let rel_path = full_path
                 .strip_prefix(&dir_path)
-                .expect("strip prefix failed");
+                .map_err(|e| err::PackingError::FileReadingError(e))?;
 
-            FileInfo::new(
-                rel_path.with_extension(""),
-                FileExt::try_from(full_path.extension().unwrap().to_str().unwrap())
-                    .expect("unsupported file extension"),
+            Ok(FileInfo::new(
+                rel_path.to_owned(),
+                //FileExt::try_from(full_path.extension().unwrap().to_str().unwrap())
+                // .expect("unsupported file extension"),
                 buf,
-            )
+            ))
         })
-        .collect::<Vec<_>>();
-    Ok(Package::from(files))
+        .collect::<Result<Vec<_>, err::PackingError>>()?;
+    Ok(Package::from_file_info(
+        files,
+        PackageVersion::from((0, 0, 0, 1)),
+        Compression::None,
+    ))
 }
 
 pub fn write_package(mut path: OsString, package: &mut Package) -> std::io::Result<()> {
@@ -75,8 +75,10 @@ pub fn write_package(mut path: OsString, package: &mut Package) -> std::io::Resu
 
     //header
     buf.write(&FILE_HEADER)?;
-    buf.write(&VERSION_0_0_0_1)?;
-    buf.write(&NO_COMPRESSION)?;
+    let ver: [u8; 4] = package.version.into();
+    buf.write(&ver)?;
+    let comp: [u8; 2] = package.compression.into();
+    buf.write(&comp)?;
 
     for (name, data) in &package.names {
         buf.write(name.as_bytes())?;
@@ -110,13 +112,13 @@ pub fn load_package(path_to_dir: OsString) -> Result<Package, err::UnpackError> 
     if bytes.as_ref() != VERSION_0_0_0_1 {
         return Err(UnpackError::InvalidVersion);
     }
-    let version = version_from_bytes(bytes.as_ref());
+    let version = PackageVersion::try_from(bytes.as_ref())?;
     bytes = remain;
     remain = bytes.split_off(2);
     if bytes.as_ref() != NO_COMPRESSION {
         return Err(UnpackError::InvalidFile);
     }
-    let compression = Compression::try_from(bytes[0])?;
+    let compression = Compression::try_from(&bytes[..2])?;
 
     let (map, bytes) = read_data_table(&mut remain)?;
     let data: Vec<u8> = bytes.collect::<Result<_, _>>()?;
@@ -134,7 +136,7 @@ enum ParseState {
     ReadingString,
     ReadingIndex,
     ReadingSize,
-    ReadingExt,
+    //ReadingExt,
 }
 
 fn read_data_table(
@@ -154,8 +156,8 @@ fn read_data_table(
 
     let mut str = String::default();
     let mut index = 0;
-    let mut size = 0;
-    let mut ext: FileExt;
+    //let mut size = 0;
+    //let mut ext: FileExt;
     while let Some(Ok(b)) = bytes.next() {
         if b == b'\0' && state == ParseState::ReadingString {
             break;
@@ -163,7 +165,7 @@ fn read_data_table(
         if state == ParseState::ReadingString {
             let mut str_buf = vec![b];
             while let Some(str_byte) = bytes.next() {
-                let str_byte = str_byte.expect("failed to read string data");
+                let str_byte = str_byte?;
                 if str_byte != b'\0' {
                     str_buf.push(str_byte);
                 } else {
@@ -171,39 +173,40 @@ fn read_data_table(
                 }
             }
             state = ParseState::ReadingIndex;
-            str = String::from_utf8(str_buf).unwrap();
+            str = String::from_utf8(str_buf)?;
         } else if state == ParseState::ReadingIndex {
             let mut idx: [u8; 4] = [b; 4];
             for i in 1..4 {
-                idx[i] = bytes.next().unwrap().unwrap();
+                idx[i] = bytes.next().ok_or_else(|| err::ParseError::Index)??;
             }
             index = u32::from_le_bytes(idx);
             state = ParseState::ReadingSize;
         } else if state == ParseState::ReadingSize {
             let mut sz: [u8; 4] = [b; 4];
             for i in 1..4 {
-                sz[i] = bytes.next().unwrap().unwrap();
+                sz[i] = bytes.next().ok_or_else(|| err::ParseError::Size)??;
             }
-            size = u32::from_le_bytes(sz);
-            state = ParseState::ReadingExt;
-        } else {
-            let e: [u8; 1] = [b];
-            ext = FileExt::try_from(u8::from_le_bytes(e))?;
+            let size = u32::from_le_bytes(sz);
             state = ParseState::ReadingString;
-
-            map.insert(str.clone(), DataInfo::new(index, size, ext));
+            map.insert(str.clone(), DataInfo::new(index, size));
         }
+        // else {
+        //     let e: [u8; 1] = [b];
+        //     ext = FileExt::try_from(u8::from_le_bytes(e))?;
+        //     state = ParseState::ReadingString;
+
+        // }
     }
     Ok((map, bytes))
 }
 
 pub fn unpack_to_dir(dir_path: String, pack: &Package) -> std::io::Result<()> {
     DirBuilder::new().recursive(true).create(dir_path.clone())?;
-    for (file_name, info) in &pack.names {
+    for (file_name, _info) in &pack.names {
         let bytes = pack.get_data_ref(&file_name).unwrap();
         let mut path = PathBuf::from(dir_path.clone());
         path.push(file_name);
-        path.set_extension(info.ext().to_string());
+        //path.set_extension(info.ext().to_string());
         if let Some(prefix) = path.parent() {
             fs::create_dir_all(prefix)?;
         }
