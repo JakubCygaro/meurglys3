@@ -9,3 +9,4 @@ edition = "2021"
 [dependencies]
 thiserror = "1.0.58" 
 bytes = "1.5.0"
+path-slash = "0.2.1" 

@@ -35,26 +35,18 @@ fn main() {
             (Some(source), None) => {
                 pack = Some(meurglys3_lib::load_package(source).unwrap());
                 check_pack(&check, &pack.unwrap())
-            },
-            (None, Some(pack)) => {
-                check_pack(&check, &pack)
-            },
+            }
+            (None, Some(pack)) => check_pack(&check, &pack),
             _ => {
                 panic!("cannot perform a check without the package path specified")
             }
-        }
-
-
-        // if let Some(package) = pack {
-        //     check_pack(&check, &package);
-        // } else {
-        //     panic!("no package path specified, cannot perform check")
-        // }
+        };
     }
-    let dir = args.dir.expect("pack dir not specified");
-    let mut pack = meurglys3_lib::package_dir(dir).expect("Failed to package");
-    let out = args.output.unwrap_or("package".into());
-    meurglys3_lib::write_package(out, &mut pack).expect("failed to write package");
+    if let Some(dir) = args.dir {
+        let mut pack = meurglys3_lib::package_dir(dir).expect("Failed to package");
+        let out = args.output.unwrap_or("package".into());
+        meurglys3_lib::write_package(out, &mut pack).expect("failed to write package");
+    }
 }
 fn unpack(source: OsString, dest: OsString) -> Package {
     let pack = meurglys3_lib::load_package(source).expect("unpack failed");

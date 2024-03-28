@@ -1,5 +1,3 @@
-use std::error;
-
 use thiserror::Error;
 
 #[derive(Error, Debug)]
@@ -24,6 +22,18 @@ pub enum UnpackError {
 
     #[error("error when reading file name string")]
     StringError(#[from] std::string::FromUtf8Error),
+
+    #[error(transparent)]
+    UnsupportedFormat(#[from] UnsupportedError),
+}
+
+#[derive(Error, Debug)]
+pub enum UnsupportedError {
+    #[error("unsupported file version")]
+    Version,
+
+    #[error("unsupported file compression")]
+    Compression,
 }
 
 #[derive(Error, Debug)]

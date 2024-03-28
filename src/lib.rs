@@ -2,8 +2,10 @@ use crate::err::UnpackError;
 use bytes::Buf;
 use std::fs::{self, DirBuilder};
 use std::io::{Read, Write};
+use std::ops::Deref;
 use std::path::PathBuf;
 use std::{collections::HashMap, ffi::OsString};
+use path_slash::PathExt as _;
 
 mod err;
 mod package;
@@ -32,7 +34,6 @@ fn collect_files(dir: &std::path::Path) -> std::io::Result<Vec<(fs::DirEntry, Pa
 
 pub fn package_dir(dir_path: PathBuf) -> Result<Package, err::PackingError> {
     let dir_path = std::fs::canonicalize(dir_path)?;
-    //println!("{dir_path:?}");
     let files = collect_files(&dir_path)?
         .into_iter()
         .filter_map(|(f, p)| {
@@ -41,24 +42,23 @@ pub fn package_dir(dir_path: PathBuf) -> Result<Package, err::PackingError> {
             }
             None
         })
-        // .filter(|(_f, p)| {
-        //     let ext = p.extension();
-        //     ext.is_some_and(|s| FileExt::try_from(s.to_str().unwrap()).is_ok())
-        // })
         .map(|(_f, p)| {
             let full_path = p.canonicalize()?;
             let buf = std::fs::read(&full_path)?;
-
-            //println!("path: {:?}, buf {:?}", f.path(), buf);
 
             let rel_path = full_path
                 .strip_prefix(&dir_path)
                 .map_err(|e| err::PackingError::FileReadingError(e))?;
 
+            #[cfg(target_os = "windows")]
+            let rel_path: PathBuf = rel_path
+                .to_slash()
+                .expect("slash replacement in file path failed, file path must contain non-unicode characters")
+                .deref()
+                .into();
+
             Ok(FileInfo::new(
-                rel_path.to_owned(),
-                //FileExt::try_from(full_path.extension().unwrap().to_str().unwrap())
-                // .expect("unsupported file extension"),
+                rel_path,
                 buf,
             ))
         })
@@ -107,28 +107,31 @@ pub fn load_package(path_to_dir: OsString) -> Result<Package, err::UnpackError> 
     if bytes.as_ref() != FILE_HEADER {
         return Err(UnpackError::InvalidFile);
     }
+    // read version
     bytes = remain;
     remain = bytes.split_off(4);
-    if bytes.as_ref() != VERSION_0_0_0_1 {
-        return Err(UnpackError::InvalidVersion);
-    }
     let version = PackageVersion::try_from(bytes.as_ref())?;
+
+    // read compression type
     bytes = remain;
     remain = bytes.split_off(2);
-    if bytes.as_ref() != NO_COMPRESSION {
-        return Err(UnpackError::InvalidFile);
-    }
     let compression = Compression::try_from(&bytes[..2])?;
 
-    let (map, bytes) = read_data_table(&mut remain)?;
-    let data: Vec<u8> = bytes.collect::<Result<_, _>>()?;
+    use err::UnsupportedError;
+    match (version.ver, compression) {
+        ((0, 0, 0, 1), Compression::None) => {
+            let (map, bytes) = read_data_table(&mut remain)?;
+            let data: Vec<u8> = bytes.collect::<Result<_, _>>()?;
 
-    Ok(Package {
-        names: map,
-        data: data,
-        version: version,
-        compression: compression,
-    })
+            Ok(Package {
+                names: map,
+                data: data,
+                version: version,
+                compression: compression,
+            })
+        }
+        (_, Compression::None) => Err(UnpackError::UnsupportedFormat(UnsupportedError::Version)),
+    }
 }
 
 #[derive(PartialEq)]
@@ -136,7 +139,6 @@ enum ParseState {
     ReadingString,
     ReadingIndex,
     ReadingSize,
-    //ReadingExt,
 }
 
 fn read_data_table(
@@ -156,8 +158,7 @@ fn read_data_table(
 
     let mut str = String::default();
     let mut index = 0;
-    //let mut size = 0;
-    //let mut ext: FileExt;
+
     while let Some(Ok(b)) = bytes.next() {
         if b == b'\0' && state == ParseState::ReadingString {
             break;
@@ -190,12 +191,6 @@ fn read_data_table(
             state = ParseState::ReadingString;
             map.insert(str.clone(), DataInfo::new(index, size));
         }
-        // else {
-        //     let e: [u8; 1] = [b];
-        //     ext = FileExt::try_from(u8::from_le_bytes(e))?;
-        //     state = ParseState::ReadingString;
-
-        // }
     }
     Ok((map, bytes))
 }
@@ -206,7 +201,6 @@ pub fn unpack_to_dir(dir_path: String, pack: &Package) -> std::io::Result<()> {
         let bytes = pack.get_data_ref(&file_name).unwrap();
         let mut path = PathBuf::from(dir_path.clone());
         path.push(file_name);
-        //path.set_extension(info.ext().to_string());
         if let Some(prefix) = path.parent() {
             fs::create_dir_all(prefix)?;
         }
