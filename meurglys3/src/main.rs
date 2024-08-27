@@ -38,7 +38,6 @@ enum Target {
 }
 
 fn main() {
-    let mut pack: Option<Package> = None;
     let args = Args::parse();
 
     match args.target {
@@ -47,14 +46,13 @@ fn main() {
             meurglys3_lib::write_package(out, &mut pack).expect("failed to write package");
         },
         Target::Unpack { dir, out } => {
-            pack = Some(unpack(
+            unpack(
                 dir,
-                out,
-            ));
+                out);
         },
         Target::Check { dir, check } => {
-            pack = Some(meurglys3_lib::load_package(dir.clone()).expect(&format!("could not load package at `{}`", dir.to_str().unwrap_or_default())));
-            check_pack(&check, &pack.unwrap())
+            let pack = meurglys3_lib::load_package(dir.clone()).expect(&format!("could not load package at `{}`", dir.to_str().unwrap_or_default()));
+            check_pack(&check, &pack)
         }
     };
 }
