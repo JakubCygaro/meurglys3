@@ -4,7 +4,11 @@ use clap::Parser;
 use meurglys3_lib::{self, Package};
 
 #[derive(Parser, Debug)]
-#[command(version, about, long_about = None)]
+#[command(version)]
+#[command(about = "A tar-like packaging utility")]
+#[command(name = "Meurglys3")]
+#[command(long_about = "Packages whole directories (including subdirectories) into a single .m3pkg file while preserving the directory structure for later unpacking.")]
+#[command(author = "Adam Papieros")]
 struct Args {
     #[command(subcommand)]
     target: Target,
@@ -22,16 +26,25 @@ struct Args {
 
 #[derive(clap::Subcommand, Debug)]
 enum Target {
+    #[command(about = "Package a directory", long_about = None)]
     Pack {
+        #[arg(help = "source directory")]
         dir: PathBuf,
+        #[arg(help = "output file name")]
         out: OsString
     },
+    #[command(about = "Unpackage a directory", long_about = None)]
     Unpack{
+        #[arg(help = "source .m3pkg file")]
         dir: OsString,
+        #[arg(help = "output directory path")]
         out: OsString
     },
+    #[command(about = "Check wether a package contains a file", long_about = None)]
     Check {
+        #[arg(help = "source .m3pkg file")]
         dir: OsString,
+        #[arg(help = "a comma separated list of file paths to check if they are contained in the package")]
         #[clap(value_parser, num_args = 1.., value_delimiter = ',')]
         check: Vec<String>
     }
