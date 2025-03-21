@@ -1,15 +1,16 @@
 use crate::err::UnpackError;
 use bytes::Buf;
+use path_slash::PathExt as _;
 use std::fs::{self, DirBuilder};
 use std::io::{Read, Write};
 use std::ops::Deref;
 use std::path::PathBuf;
 use std::{collections::HashMap, ffi::OsString};
-use path_slash::PathExt as _;
 
 mod err;
 mod package;
-
+#[cfg(test)]
+mod tests;
 use package::*;
 pub use package::{Compression, Package, PackageVersion};
 
@@ -70,31 +71,31 @@ pub fn package_dir(dir_path: PathBuf) -> Result<Package, err::PackingError> {
     ))
 }
 
-pub fn write_package(mut path: OsString, package: &mut Package) -> std::io::Result<()> {
+pub fn write_package(mut path: PathBuf, package: &mut Package) -> std::io::Result<()> {
     let mut buf: Vec<u8> = vec![];
 
     //header
-    buf.write(&FILE_HEADER)?;
+    buf.write_all(&FILE_HEADER)?;
     let ver: [u8; 4] = package.version.into();
-    buf.write(&ver)?;
+    buf.write_all(&ver)?;
     let comp: [u8; 2] = package.compression.into();
-    buf.write(&comp)?;
+    buf.write_all(&comp)?;
 
     for (name, data) in &package.names {
-        buf.write(name.as_bytes())?;
-        buf.write(&[0x00])?;
-        buf.write(&data.clone().to_le_bytes())?;
+        buf.write_all(name.as_bytes())?;
+        buf.write_all(&[0x00])?;
+        buf.write_all(&data.clone().to_le_bytes())?;
     }
-    buf.write(&[0x0])?;
+    buf.write_all(&[0x0])?;
 
-    buf.write(&package.data[..])?;
-    path.push(".m3pkg");
+    buf.write_all(&package.data[..])?;
+    path.set_extension("m3pkg");
     let mut file = fs::File::create(path)?;
 
     file.write_all(&buf[..])
 }
 
-pub fn load_package(path_to_dir: OsString) -> Result<Package, err::UnpackError> {
+pub fn load_package(path_to_dir: PathBuf) -> Result<Package, err::UnpackError> {
     let file = fs::read(path_to_dir)?;
     let file_len = file.len();
     let mut bytes = bytes::Bytes::from(file);
@@ -195,7 +196,7 @@ fn read_data_table(
     Ok((map, bytes))
 }
 
-pub fn unpack_to_dir(dir_path: String, pack: &Package) -> std::io::Result<()> {
+pub fn unpack_to_dir(dir_path: PathBuf, pack: &Package) -> std::io::Result<()> {
     DirBuilder::new().recursive(true).create(dir_path.clone())?;
     for (file_name, _info) in &pack.names {
         let bytes = pack.get_data_ref(&file_name).unwrap();

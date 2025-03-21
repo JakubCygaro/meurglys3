@@ -1,4 +1,4 @@
-use std::{ffi::OsString, path::PathBuf};
+use std::{path::PathBuf};
 
 use clap::Parser;
 use meurglys3_lib::{self, Package};
@@ -7,7 +7,9 @@ use meurglys3_lib::{self, Package};
 #[command(version)]
 #[command(about = "A tar-like packaging utility")]
 #[command(name = "Meurglys3")]
-#[command(long_about = "Packages whole directories (including subdirectories) into a single .m3pkg file while preserving the directory structure for later unpacking.")]
+#[command(
+    long_about = "Packages whole directories (including subdirectories) into a single .m3pkg file while preserving the directory structure for later unpacking."
+)]
 #[command(author = "Adam Papieros")]
 struct Args {
     #[command(subcommand)]
@@ -15,11 +17,11 @@ struct Args {
     // #[arg(short, long)]
     // dir: Option<PathBuf>,
     // #[arg(short, long)]
-    // source: Option<OsString>,
+    // source: Option<PathBuf>,
     // #[arg(short, long)]
     // unpack: Option<bool>,
     // #[arg(short, long)]
-    // output: Option<OsString>,
+    // output: Option<PathBuf>,
     // #[arg(short, long, value_parser, num_args = 1.., value_delimiter = ',')]
     // check: Option<Vec<String>>,
 }
@@ -31,23 +33,25 @@ enum Target {
         #[arg(help = "source directory")]
         dir: PathBuf,
         #[arg(help = "output file name")]
-        out: OsString
+        out: PathBuf,
     },
     #[command(about = "Unpackage a directory", long_about = None)]
-    Unpack{
+    Unpack {
         #[arg(help = "source .m3pkg file")]
-        dir: OsString,
+        dir: PathBuf,
         #[arg(help = "output directory path")]
-        out: OsString
+        out: PathBuf,
     },
     #[command(about = "Check wether a package contains a file", long_about = None)]
     Check {
         #[arg(help = "source .m3pkg file")]
-        dir: OsString,
-        #[arg(help = "a comma separated list of file paths to check if they are contained in the package")]
+        dir: PathBuf,
+        #[arg(
+            help = "a comma separated list of file paths to check if they are contained in the package"
+        )]
         #[clap(value_parser, num_args = 1.., value_delimiter = ',')]
-        check: Vec<String>
-    }
+        check: Vec<String>,
+    },
 }
 
 fn main() {
@@ -57,22 +61,23 @@ fn main() {
         Target::Pack { dir, out } => {
             let mut pack = meurglys3_lib::package_dir(dir).expect("Failed to package");
             meurglys3_lib::write_package(out, &mut pack).expect("failed to write package");
-        },
+        }
         Target::Unpack { dir, out } => {
-            unpack(
-                dir,
-                out);
-        },
+            unpack(dir, out);
+        }
         Target::Check { dir, check } => {
-            let pack = meurglys3_lib::load_package(dir.clone()).expect(&format!("could not load package at `{}`", dir.to_str().unwrap_or_default()));
+            let pack = meurglys3_lib::load_package(dir.clone()).expect(&format!(
+                "could not load package at `{}`",
+                dir.to_str().unwrap_or_default()
+            ));
             check_pack(&check, &pack)
         }
     };
 }
-fn unpack(source: OsString, dest: OsString) -> Package {
+fn unpack(source: PathBuf, dest: PathBuf) -> Package {
     let pack = meurglys3_lib::load_package(source).expect("unpack failed");
     //println!("{:?}", pack)
-    meurglys3_lib::unpack_to_dir(dest.into_string().unwrap(), &pack).unwrap();
+    meurglys3_lib::unpack_to_dir(dest, &pack).unwrap();
     pack
 }
 fn check_pack(names: &Vec<String>, pack: &Package) {

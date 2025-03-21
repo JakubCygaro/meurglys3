@@ -120,7 +120,7 @@ impl Package {
                 size: file_info.data.len() as u32,
             };
             map.insert(file_info.path.to_string_lossy().to_string(), data_info);
-            data.write(&file_info.data[..]).unwrap();
+            data.write_all(&file_info.data[..]).unwrap();
         }
         Package {
             names: map,
