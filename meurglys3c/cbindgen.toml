@@ -13,7 +13,7 @@ sys_includes = []
 includes = []
 no_includes = false
 cpp_compat = true
-# after_includes = ""
+after_includes = "#define _Nonnull"
 
 ############################ Code Style Options ################################
 
@@ -36,16 +36,15 @@ usize_is_size_t = true
 # "feature = serde" = "DEFINE_SERDE"
 
 [export]
-include = []
-exclude = []
+# include = ["pure_rust"]
+# exclude = []
 prefix = "MEU3_"
-item_types = ["enums", "typedefs", "functions"]
+item_types = ["enums", "typedefs", "functions", "opaque"]
 renaming_overrides_prefixing = false
 
 
 
 [export.rename]
-
 
 
 [export.body]
@@ -117,9 +116,9 @@ bitflags = false
 ############## Options for How Your Rust library Should Be Parsed ##############
 
 [parse]
-parse_deps = false
+# parse_deps = true
 # include = []
-exclude = []
+# exclude = []
 clean = false
 extra_bindings = []
 
