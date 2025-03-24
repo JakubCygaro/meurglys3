@@ -1,7 +1,8 @@
-use std::ffi::{c_char, c_uchar, c_ulonglong, c_void, CStr, CString};
+use std::ffi::{c_char, c_uchar, c_ulonglong, c_void, CStr};
 use std::path::PathBuf;
-use std::ptr::{self, null, null_mut};
+use std::ptr::{self, null_mut};
 use meurglys3_lib::{self, Package};
+pub use meurglys3_lib::Compression;
 
 #[repr(C)]
 pub enum Error {
@@ -10,6 +11,13 @@ pub enum Error {
     PackError,
     ParameterWasNull,
     FailedCast,
+}
+#[repr(C)]
+pub struct PackageVersion {
+    major: u8,
+    minor: u8,
+    tweak: u8,
+    patch: u8,
 }
 
 pub type PACKAGE = c_void;
@@ -90,6 +98,43 @@ pub unsafe extern "C" fn meu3_package_get_data_ptr(pack: &mut PACKAGE, path: &c_
         Err(e) => {
             *err = e;
             ptr::null_mut()
+        }
+    }
+}
+#[no_mangle]
+pub unsafe extern "C" fn meu3_package_get_version(pack: &mut PACKAGE, err: &mut Error) -> PackageVersion {
+    *err = Error::NoError;
+    match extract_mut_ref(pack as *mut c_void as *mut Package) {
+        Ok(pack) => {
+            let v = pack.version().ver;
+            PackageVersion {
+                major: v.0,
+                minor: v.1,
+                patch: v.2,
+                tweak: v.3,
+            }
+        },
+        Err(e) => {
+            *err = e;
+            PackageVersion { 
+                major: 0,
+                minor: 0,
+                patch: 0,
+                tweak: 0,
+            }
+        }
+    }
+}
+#[no_mangle]
+pub unsafe extern "C" fn meu3_package_get_compression(pack: &mut PACKAGE, err: &mut Error) -> Compression {
+    *err = Error::NoError;
+    match extract_mut_ref(pack as *mut c_void as *mut Package) {
+        Ok(pack) => {
+            pack.compression()
+        },
+        Err(e) => {
+            *err = e;
+            Compression::None
         }
     }
 }

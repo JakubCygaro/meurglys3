@@ -74,6 +74,7 @@ impl DataInfo {
 }
 
 #[derive(Clone, Copy)]
+#[repr(C)]
 pub enum Compression {
     None,
 }
