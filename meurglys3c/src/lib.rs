@@ -3,6 +3,7 @@ use libc::{c_char, c_uchar, c_ulonglong, c_void};
 use std::path::PathBuf;
 use std::ptr::{self, null_mut};
 use meurglys3_lib::{self, Package};
+pub use meurglys3_lib::Compression;
 
 #[repr(C)]
 pub enum Error {
@@ -126,15 +127,15 @@ pub unsafe extern "C" fn meu3_package_get_version(pack: &mut PACKAGE, err: &mut 
     }
 }
 #[no_mangle]
-pub unsafe extern "C" fn meu3_package_get_compression(pack: &mut PACKAGE, err: &mut Error) -> i32 {
+pub unsafe extern "C" fn meu3_package_get_compression(pack: &mut PACKAGE, err: &mut Error) -> Compression {
     *err = Error::NoError;
     match extract_mut_ref(pack as *mut c_void as *mut Package) {
         Ok(pack) => {
-            pack.compression() as i32
+            pack.compression() 
         },
         Err(e) => {
             *err = e;
-            meurglys3_lib::Compression::None as i32
+            meurglys3_lib::Compression::None 
         }
     }
 }

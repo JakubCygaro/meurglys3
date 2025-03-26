@@ -92,8 +92,8 @@ sort_by = "Name"
 bitflags = false
 
 [parse]
-# parse_deps = true
-# include = []
+parse_deps = true
+include = ["meurglys3_lib"]
 # exclude = []
 clean = false
 extra_bindings = []
