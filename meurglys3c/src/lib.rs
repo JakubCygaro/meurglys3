@@ -1,8 +1,8 @@
-use std::ffi::{c_char, c_uchar, c_ulonglong, c_void, CStr};
+use std::ffi::CStr;
+use libc::{c_char, c_uchar, c_ulonglong, c_void};
 use std::path::PathBuf;
 use std::ptr::{self, null_mut};
 use meurglys3_lib::{self, Package};
-pub use meurglys3_lib::Compression;
 
 #[repr(C)]
 pub enum Error {
@@ -14,10 +14,10 @@ pub enum Error {
 }
 #[repr(C)]
 pub struct PackageVersion {
-    major: u8,
-    minor: u8,
-    tweak: u8,
-    patch: u8,
+    pub major: c_uchar,
+    pub minor: c_uchar,
+    pub tweak: c_uchar,
+    pub patch: c_uchar,
 }
 
 pub type PACKAGE = c_void;
@@ -102,12 +102,12 @@ pub unsafe extern "C" fn meu3_package_get_data_ptr(pack: &mut PACKAGE, path: &c_
     }
 }
 #[no_mangle]
-pub unsafe extern "C" fn meu3_package_get_version(pack: &mut PACKAGE, err: &mut Error) -> PackageVersion {
+pub unsafe extern "C" fn meu3_package_get_version(pack: &mut PACKAGE, err: &mut Error) -> crate::PackageVersion {
     *err = Error::NoError;
     match extract_mut_ref(pack as *mut c_void as *mut Package) {
         Ok(pack) => {
             let v = pack.version().ver;
-            PackageVersion {
+            crate::PackageVersion {
                 major: v.0,
                 minor: v.1,
                 patch: v.2,
@@ -116,7 +116,7 @@ pub unsafe extern "C" fn meu3_package_get_version(pack: &mut PACKAGE, err: &mut 
         },
         Err(e) => {
             *err = e;
-            PackageVersion { 
+            crate::PackageVersion { 
                 major: 0,
                 minor: 0,
                 patch: 0,
@@ -126,15 +126,15 @@ pub unsafe extern "C" fn meu3_package_get_version(pack: &mut PACKAGE, err: &mut 
     }
 }
 #[no_mangle]
-pub unsafe extern "C" fn meu3_package_get_compression(pack: &mut PACKAGE, err: &mut Error) -> Compression {
+pub unsafe extern "C" fn meu3_package_get_compression(pack: &mut PACKAGE, err: &mut Error) -> i32 {
     *err = Error::NoError;
     match extract_mut_ref(pack as *mut c_void as *mut Package) {
         Ok(pack) => {
-            pack.compression()
+            pack.compression() as i32
         },
         Err(e) => {
             *err = e;
-            Compression::None
+            meurglys3_lib::Compression::None as i32
         }
     }
 }

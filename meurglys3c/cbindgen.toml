@@ -13,7 +13,7 @@ include_version = true
 # includes = []
 no_includes = false
 cpp_compat = true
-# after_includes = ""
+after_includes = "#define _Nonnull"
 
 # braces = "SameLine"
 # line_length = 100
@@ -92,11 +92,11 @@ sort_by = "Name"
 bitflags = false
 
 [parse]
-parse_deps = false
+# parse_deps = true
 # include = []
 # exclude = []
-# clean = false
-# extra_bindings = []
+clean = false
+extra_bindings = []
 
 [parse.expand]
 crates = []
