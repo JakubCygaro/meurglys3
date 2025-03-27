@@ -1,9 +1,9 @@
 use lazy_static::lazy_static;
 use std::fs::{DirBuilder, File};
+use std::io;
 use std::io::{Read, Write};
 use std::path::PathBuf;
 use std::str::FromStr;
-use std::io;
 use tempdir::{self, TempDir};
 
 enum FileType {
