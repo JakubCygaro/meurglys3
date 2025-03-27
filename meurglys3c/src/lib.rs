@@ -1,4 +1,5 @@
 use std::ffi::CStr;
+use std::str::FromStr;
 use libc::{c_char, c_uchar, c_ulonglong, c_void};
 use std::path::PathBuf;
 use std::ptr::{self, null_mut};
@@ -12,6 +13,8 @@ pub enum Error {
     PackError,
     ParameterWasNull,
     FailedCast,
+    WritePackageError,
+    PathError,
 }
 #[repr(C)]
 pub struct PackageVersion {
@@ -59,6 +62,31 @@ pub unsafe extern "C" fn meu3_load_package(dir_path: &c_char, err: &mut Error) -
     };
     let pack = Box::new(pack);
     Box::into_raw(pack) as *mut PACKAGE
+}
+#[no_mangle]
+pub unsafe extern "C" fn meu3_write_package(path: &c_char, package: &mut PACKAGE, err: &mut Error) -> bool {
+    let pack = extract_mut_ref(package as *mut c_void as *mut Package);
+    let Ok(pack) = pack else {
+        *err = pack.unwrap_err();
+        return false;
+    };
+    let str = CStr::from_ptr(path as *const _);
+    let str = str.to_str();
+    let Ok(str) = str else {
+        *err = Error::StringError;
+        return false;
+    };
+    let Ok(path) = PathBuf::from_str(str) else {
+        *err = Error::PathError;
+        return false;
+    };
+    match meurglys3_lib::write_package(path, pack) {
+        Ok(_) => true,
+        Err(_e) => {
+            *err = Error::WritePackageError;
+            false
+        }
+    }
 }
 #[no_mangle]
 pub unsafe extern "C" fn meu3_package_has(pack: &PACKAGE, path: &c_char, err: &mut Error) -> bool {
