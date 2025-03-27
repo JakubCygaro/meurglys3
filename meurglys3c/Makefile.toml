@@ -1,0 +1,16 @@
+[tasks.build]
+command = "cargo"
+args = ["build"]
+dependencies = ["cbindgen"]
+
+[tasks.test]
+clear = true
+
+[tasks.release]
+command = "cargo"
+args = ["build", "-r"]
+
+[tasks.cbindgen]
+install_crate = { crate_name = "cbindgen" }
+command = "cbindgen"
+args = ["-o", "meu3.h"]

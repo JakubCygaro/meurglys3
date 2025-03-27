@@ -1,10 +1,10 @@
-use std::ffi::CStr;
-use std::str::FromStr;
 use libc::{c_char, c_uchar, c_ulonglong, c_void};
+pub use meurglys3_lib::Compression;
+use meurglys3_lib::{self, Package};
+use std::ffi::CStr;
 use std::path::PathBuf;
 use std::ptr::{self, null_mut};
-use meurglys3_lib::{self, Package};
-pub use meurglys3_lib::Compression;
+use std::str::FromStr;
 
 #[repr(C)]
 pub enum Error {
@@ -30,7 +30,7 @@ pub type BYTES = *mut c_uchar;
 #[no_mangle]
 pub unsafe extern "C" fn meu3_package_dir(dir_path: &c_char, err: &mut Error) -> *mut PACKAGE {
     let path = CStr::from_ptr(dir_path as *const _);
-    let Ok(path ) = path.to_str() else {
+    let Ok(path) = path.to_str() else {
         *err = Error::StringError;
         return null_mut::<c_void>();
     };
@@ -44,9 +44,7 @@ pub unsafe extern "C" fn meu3_package_dir(dir_path: &c_char, err: &mut Error) ->
 }
 #[no_mangle]
 pub extern "C" fn meu3_free_package(package: &mut PACKAGE) {
-    let pack = unsafe { 
-        Box::from_raw(package as *mut c_void as *mut Package) 
-    };
+    let pack = unsafe { Box::from_raw(package as *mut c_void as *mut Package) };
     drop(pack);
 }
 #[no_mangle]
@@ -64,7 +62,11 @@ pub unsafe extern "C" fn meu3_load_package(dir_path: &c_char, err: &mut Error) -
     Box::into_raw(pack) as *mut PACKAGE
 }
 #[no_mangle]
-pub unsafe extern "C" fn meu3_write_package(path: &c_char, package: &mut PACKAGE, err: &mut Error) -> bool {
+pub unsafe extern "C" fn meu3_write_package(
+    path: &c_char,
+    package: &mut PACKAGE,
+    err: &mut Error,
+) -> bool {
     let pack = extract_mut_ref(package as *mut c_void as *mut Package);
     let Ok(pack) = pack else {
         *err = pack.unwrap_err();
@@ -100,15 +102,20 @@ pub unsafe extern "C" fn meu3_package_has(pack: &PACKAGE, path: &c_char, err: &m
                 return false;
             };
             p.has(path)
-        },
+        }
         Err(e) => {
             *err = e;
             false
         }
-    }
+    };
 }
 #[no_mangle]
-pub unsafe extern "C" fn meu3_package_get_data_ptr(pack: &mut PACKAGE, path: &c_char, len: &mut c_ulonglong, err: &mut Error) -> BYTES {
+pub unsafe extern "C" fn meu3_package_get_data_ptr(
+    pack: &mut PACKAGE,
+    path: &c_char,
+    len: &mut c_ulonglong,
+    err: &mut Error,
+) -> BYTES {
     *err = Error::NoError;
     match extract_mut_ref(pack as *mut c_void as *mut Package) {
         Ok(pack) => {
@@ -123,7 +130,7 @@ pub unsafe extern "C" fn meu3_package_get_data_ptr(pack: &mut PACKAGE, path: &c_
             } else {
                 null_mut()
             }
-        },
+        }
         Err(e) => {
             *err = e;
             ptr::null_mut()
@@ -131,7 +138,10 @@ pub unsafe extern "C" fn meu3_package_get_data_ptr(pack: &mut PACKAGE, path: &c_
     }
 }
 #[no_mangle]
-pub unsafe extern "C" fn meu3_package_get_version(pack: &mut PACKAGE, err: &mut Error) -> crate::PackageVersion {
+pub unsafe extern "C" fn meu3_package_get_version(
+    pack: &mut PACKAGE,
+    err: &mut Error,
+) -> crate::PackageVersion {
     *err = Error::NoError;
     match extract_mut_ref(pack as *mut c_void as *mut Package) {
         Ok(pack) => {
@@ -142,10 +152,10 @@ pub unsafe extern "C" fn meu3_package_get_version(pack: &mut PACKAGE, err: &mut 
                 patch: v.2,
                 tweak: v.3,
             }
-        },
+        }
         Err(e) => {
             *err = e;
-            crate::PackageVersion { 
+            crate::PackageVersion {
                 major: 0,
                 minor: 0,
                 patch: 0,
@@ -155,25 +165,26 @@ pub unsafe extern "C" fn meu3_package_get_version(pack: &mut PACKAGE, err: &mut 
     }
 }
 #[no_mangle]
-pub unsafe extern "C" fn meu3_package_get_compression(pack: &mut PACKAGE, err: &mut Error) -> Compression {
+pub unsafe extern "C" fn meu3_package_get_compression(
+    pack: &mut PACKAGE,
+    err: &mut Error,
+) -> Compression {
     *err = Error::NoError;
     match extract_mut_ref(pack as *mut c_void as *mut Package) {
-        Ok(pack) => {
-            pack.compression() 
-        },
+        Ok(pack) => pack.compression(),
         Err(e) => {
             *err = e;
-            meurglys3_lib::Compression::None 
+            meurglys3_lib::Compression::None
         }
     }
 }
 unsafe fn extract_mut_ref<'a, T>(val: *mut T) -> Result<&'a mut T, Error> {
     if val.is_null() {
-        return Err(Error::ParameterWasNull)
+        return Err(Error::ParameterWasNull);
     }
     return if let Some(r) = val.as_mut() {
         Ok(r)
     } else {
         Err(Error::FailedCast)
-    }
+    };
 }

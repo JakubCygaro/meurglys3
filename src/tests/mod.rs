@@ -3,7 +3,7 @@ use std::fs::{DirBuilder, File};
 use std::io::{Read, Write};
 use std::path::PathBuf;
 use std::str::FromStr;
-use std::{io, path};
+use std::io;
 use tempdir::{self, TempDir};
 
 enum FileType {
@@ -149,7 +149,7 @@ fn test_packing_and_unpacking() -> Result<(), super::err::PackingError> {
     Ok(())
 }
 #[test]
-fn test_pack_and_save() -> Result<(), super::err::PackingError>  {
+fn test_pack_and_save() -> Result<(), super::err::PackingError> {
     let src_tmp = create_test_directory(&PACKING_TEST_MODEL)?;
     let mut pack = super::package_dir(src_tmp.path().to_path_buf())?;
     let dest_tmp = tempdir::TempDir::new("dest_tmp")?;

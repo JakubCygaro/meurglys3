@@ -1,11 +1,11 @@
 use crate::err::UnpackError;
 use bytes::Buf;
 use path_slash::PathExt as _;
+use std::collections::HashMap;
 use std::fs::{self, DirBuilder};
 use std::io::{Read, Write};
 use std::ops::Deref;
 use std::path::PathBuf;
-use std::{collections::HashMap, ffi::OsString};
 
 mod err;
 mod package;
