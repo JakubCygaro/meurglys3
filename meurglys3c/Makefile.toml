@@ -1,14 +1,28 @@
 [tasks.build]
+condition = { env_false = ["BUILD_STATIC_LIB"] }
 command = "cargo"
 args = ["build"]
+dependencies = ["cbindgen", "build-static-lib"]
+
+[tasks.build-static-lib]
+condition = { env_true = ["BUILD_STATIC_LIB"] }
+command = "cargo"
+args = ["build", "--config", "lib.crate-type=[\"staticlib\"]"]
 dependencies = ["cbindgen"]
 
 [tasks.test]
 clear = true
 
 [tasks.release]
+condition = { env_false = ["BUILD_STATIC_LIB"] }
 command = "cargo"
 args = ["build", "-r"]
+dependencies = ["cbindgen", "release-build-static-lib"]
+
+[tasks.release-build-static-lib]
+condition = { env_true = ["BUILD_STATIC_LIB"] }
+command = "cargo"
+args = ["build", "-r", "--config", "lib.crate-type=[\"staticlib\"]"]
 dependencies = ["cbindgen"]
 
 [tasks.cbindgen]

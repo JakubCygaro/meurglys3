@@ -1,0 +1,3 @@
+Flags to pass to the compiler in order to link with the static meurglys3c.a library:
+
+@linkerFlags@

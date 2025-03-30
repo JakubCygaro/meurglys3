@@ -23,9 +23,53 @@ set(meu3LinkDirectory
     ${CMAKE_SOURCE_DIR}/target/release
     ${CMAKE_SOURCE_DIR}/target/debug
 )
-add_subdirectory(meurglys3c)
-# if(${CMAKE_BUILD_TYPE} STREQUAL "Release")
-# endif()
-add_custom_target(cargoMake ALL
-    COMMAND "cargo make release"
+
+# Run cargo make release at configure time
+message(STATUS "Running cargo make release")
+execute_process(COMMAND cargo make --env-file=./cmake.env release
+    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+    RESULT_VARIABLE cargoMakeResult
+    OUTPUT_VARIABLE cargoMakeOutput
+    ERROR_VARIABLE cargoMakeError
 )
+message(STATUS ${cargoMakeOutput})
+if (cargoMakeResult)
+    message(FATAL_ERROR "Failed to build the rust project with cargo make")
+    message(FATAL_ERROR "${cargoMakeError}")
+endif()
+message(STATUS "All crates successfully built")
+# Find the static library 
+find_file(meu3StaticLib
+    libmeurglys3c.a
+    PATHS ${CMAKE_CURRENT_LIST_DIR}/target/release/
+    REQUIRED
+    NO_DEFAULT_PATH
+)
+# Get all required dynamic libraries for the linker
+execute_process(
+    COMMAND cargo rustc -- --print native-static-libs
+    WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/meurglys3c
+    RESULT_VARIABLE rustcResult
+    OUTPUT_VARIABLE rustcOutput
+    ERROR_VARIABLE rustcOutput
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+    ERROR_STRIP_TRAILING_WHITESPACE
+)
+if (rustcResult)
+    message(FATAL_ERROR "Failed to build the rust project with cargo make")
+    message(FATAL_ERROR "${rustcOutput}")
+endif()
+
+# output like so: 
+# note: native-static-libs: -lkernel32 -ladvapi32 -lntdll -luserenv -lws2_32 -lkernel32
+string(REPLACE "\n" ";" split ${rustcOutput})
+string(REGEX MATCH "native-static-libs: \(.*\) +F" libsToLink ${split})
+set(libsToLink ${CMAKE_MATCH_1})
+string(REPLACE " " ";" libsToLink ${libsToLink})
+list(FILTER libsToLink INCLUDE REGEX "[^ ]")
+
+string(REPLACE ";" " " linkerFlags "${libsToLink}")
+
+message(STATUS "To link: ${linkerFlags}")
+configure_file(LinkerFlags.txt.in ${CMAKE_CURRENT_LIST_DIR}/target/LinkerFlags.txt @ONLY)
+add_subdirectory(meurglys3c)
