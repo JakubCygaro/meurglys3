@@ -7,7 +7,7 @@ dependencies = ["cbindgen", "build-static-lib"]
 [tasks.build-static-lib]
 condition = { env_true = ["BUILD_STATIC_LIB"] }
 command = "cargo"
-args = ["build", "--config", "lib.crate-type=[\"staticlib\"]"]
+args = ["build", "--config", 'lib.crate-type=["staticlib"]']
 dependencies = ["cbindgen"]
 
 [tasks.test]
@@ -22,10 +22,14 @@ dependencies = ["cbindgen", "release-build-static-lib"]
 [tasks.release-build-static-lib]
 condition = { env_true = ["BUILD_STATIC_LIB"] }
 command = "cargo"
-args = ["build", "-r", "--config", "lib.crate-type=[\"staticlib\"]"]
+args = ["build", "-r", "--config", 'lib.crate-type=["staticlib"]']
 dependencies = ["cbindgen"]
 
 [tasks.cbindgen]
 install_crate = { crate_name = "cbindgen" }
 command = "cbindgen"
 args = ["-o", "${CARGO_MAKE_CRATE_TARGET_DIRECTORY}/include/meu3.h"]
+
+[tasks.clean]
+command = "cargo"
+args = ["clean"]

@@ -23,16 +23,16 @@ set(meu3LinkDirectory
     ${CMAKE_SOURCE_DIR}/target/release
     ${CMAKE_SOURCE_DIR}/target/debug
 )
+set(meu3StaticLibTargetDir "${CMAKE_SOURCE_DIR}/target/meu3_static")
 
-# Run cargo make release at configure time
-message(STATUS "Running cargo make release")
-execute_process(COMMAND cargo make --env-file=./cmake.env release
-    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+# Build meurglys3c manually into a special directory
+message(STATUS "Building meurglys3c static library")
+execute_process(COMMAND cargo build -r --config lib.crate-type=[\"staticlib\"] --target-dir ${meu3StaticLibTargetDir}
+    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/meurglys3c
     RESULT_VARIABLE cargoMakeResult
     OUTPUT_VARIABLE cargoMakeOutput
     ERROR_VARIABLE cargoMakeError
 )
-message(STATUS ${cargoMakeOutput})
 if (cargoMakeResult)
     message(FATAL_ERROR "Failed to build the rust project with cargo make")
     message(FATAL_ERROR "${cargoMakeError}")
@@ -41,13 +41,13 @@ message(STATUS "All crates successfully built")
 # Find the static library 
 find_file(meu3StaticLib
     libmeurglys3c.a
-    PATHS ${CMAKE_CURRENT_LIST_DIR}/target/release/
+    PATHS ${meu3StaticLibTargetDir}/release/
     REQUIRED
     NO_DEFAULT_PATH
 )
 # Get all required dynamic libraries for the linker
 execute_process(
-    COMMAND cargo rustc -- --print native-static-libs
+    COMMAND cargo rustc -- --print native-static-libs --crate-type staticlib
     WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/meurglys3c
     RESULT_VARIABLE rustcResult
     OUTPUT_VARIABLE rustcOutput
@@ -71,5 +71,5 @@ list(FILTER libsToLink INCLUDE REGEX "[^ ]")
 string(REPLACE ";" " " linkerFlags "${libsToLink}")
 
 message(STATUS "To link: ${linkerFlags}")
-configure_file(LinkerFlags.txt.in ${CMAKE_CURRENT_LIST_DIR}/target/LinkerFlags.txt @ONLY)
+configure_file(LinkerFlags.txt.in ${meu3StaticLibTargetDir}/LinkerFlags.txt @ONLY)
 add_subdirectory(meurglys3c)
