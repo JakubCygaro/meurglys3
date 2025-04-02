@@ -2,6 +2,9 @@ cmake_minimum_required(VERSION 3.30)
 
 set(testSources 
     pack.c
+    pack_inspect.c
+    write_package.c
+    package_methods.c
 )
 set(testsDir tests)
 
@@ -27,3 +30,4 @@ foreach(source IN LISTS testSources)
 endforeach()
 
 file(COPY tests/test_dir DESTINATION .)
+file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/dump)
