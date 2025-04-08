@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.30)
 
-set(testSources 
+set(testSources
     pack.c
     pack_inspect.c
     write_package.c
@@ -11,7 +11,7 @@ set(testsDir tests)
 
 foreach(source IN LISTS testSources)
     set(testExe ${source}_test)
-    add_executable(${testExe} 
+    add_executable(${testExe}
         ${testsDir}/${source}
     )
     target_include_directories(${testExe}
