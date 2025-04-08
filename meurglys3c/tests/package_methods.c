@@ -18,19 +18,6 @@ int main(void) {
     MEU3_BYTES data = meu3_package_get_data_ptr(pack, "text.txt", &len, &err);
     if (err != NoError || len == 0)
         return 1;
-    /*FILE* text = fopen("test_dir/text.txt", "r");*/
-    /*if(!text)*/
-    /*    return 1;*/
-    /*char byte = 0;*/
-    /*size_t data_idx = 0;*/
-    /*while ((byte = fgetc(text)) != EOF) {*/
-    /*    if(data[data_idx++] != byte) {*/
-    /*        fclose(text);*/
-    /*        printf("files do not match\n");*/
-    /*        return 1;*/
-    /*    }*/
-    /*}*/
-    /*fclose(text);*/
     meu3_free_package(pack);
     return 0;
 }
