@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.30)
 enable_testing()
 project(Meurglys3)
 
-set(allowedBuilds 
+set(allowedBuilds
     Debug
     Release
 )
@@ -60,10 +60,12 @@ if (rustcResult)
     message(FATAL_ERROR "${rustcOutput}")
 endif()
 
+# set(libsToLinkRegex "native-static-libs: \(.* -l.*\) +\\a" )
+set(libsToLinkRegex "native-static-libs: \(.*\) +F" )
 # output like so:
 # note: native-static-libs: -lkernel32 -ladvapi32 -lntdll -luserenv -lws2_32 -lkernel32
 string(REPLACE "\n" ";" split ${rustcOutput})
-string(REGEX MATCH "native-static-libs: \(.*\) +F" libsToLink ${split})
+string(REGEX MATCH ${libsToLinkRegex} libsToLink ${split})
 set(libsToLink ${CMAKE_MATCH_1})
 string(REPLACE " " ";" libsToLink ${libsToLink})
 list(FILTER libsToLink INCLUDE REGEX "[^ ]")
