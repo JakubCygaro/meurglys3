@@ -7,13 +7,20 @@ use std::ptr::{self, null_mut};
 use std::str::FromStr;
 
 #[repr(C)]
+/// Enum representing possible errors that can occur
 pub enum Error {
     NoError = -1,
+    /// Error with rust string conversions
     StringError = 0,
+    /// Error with packing and unpacking
     PackError,
+    /// Supplied parameter was null
     ParameterWasNull,
+    /// Casting error
     FailedCast,
+    /// Error with writing a package
     WritePackageError,
+    /// Error with paths
     PathError,
 }
 #[repr(C)]
@@ -28,6 +35,9 @@ pub type PACKAGE = c_void;
 pub type BYTES = *mut c_uchar;
 
 #[no_mangle]
+/// Packages a directory, returns a pointer to the package object
+/// # Safety
+/// Internally this function does some pointer casting
 pub unsafe extern "C" fn meu3_package_dir(dir_path: &c_char, err: &mut Error) -> *mut PACKAGE {
     let path = CStr::from_ptr(dir_path as *const _);
     let Ok(path) = path.to_str() else {
@@ -43,11 +53,15 @@ pub unsafe extern "C" fn meu3_package_dir(dir_path: &c_char, err: &mut Error) ->
     Box::into_raw(pack) as *mut c_void
 }
 #[no_mangle]
+/// Frees the package from memory, the pointer becomes invalid after this call
 pub extern "C" fn meu3_free_package(package: &mut PACKAGE) {
     let pack = unsafe { Box::from_raw(package as *mut c_void as *mut Package) };
     drop(pack);
 }
 #[no_mangle]
+/// Loads a package from a package file under the specified path
+/// # Safety
+/// Internally this function does some pointer casting
 pub unsafe extern "C" fn meu3_load_package(dir_path: &c_char, err: &mut Error) -> *mut PACKAGE {
     let path = CStr::from_ptr(dir_path as *const _);
     let Ok(path) = path.to_str() else {
@@ -62,6 +76,9 @@ pub unsafe extern "C" fn meu3_load_package(dir_path: &c_char, err: &mut Error) -
     Box::into_raw(pack) as *mut PACKAGE
 }
 #[no_mangle]
+/// Unpacks the package object into a directory
+/// # Safety
+/// Internally this function does some pointer casting
 pub unsafe extern "C" fn meu3_write_package(
     path: &c_char,
     package: &mut PACKAGE,
@@ -78,10 +95,7 @@ pub unsafe extern "C" fn meu3_write_package(
         *err = Error::StringError;
         return false;
     };
-    let Ok(path) = PathBuf::from_str(str) else {
-        *err = Error::PathError;
-        return false;
-    };
+    let Ok(path) = PathBuf::from_str(str);
     match meurglys3_lib::write_package(path, pack) {
         Ok(_) => true,
         Err(_e) => {
@@ -91,10 +105,14 @@ pub unsafe extern "C" fn meu3_write_package(
     }
 }
 #[no_mangle]
+/// Check if a package contains a file with specified path
+/// # Safety
+/// Internally this function does some pointer casting
+///
 pub unsafe extern "C" fn meu3_package_has(pack: &PACKAGE, path: &c_char, err: &mut Error) -> bool {
     *err = Error::NoError;
     let pack = pack as *const PACKAGE as *mut Package;
-    return match extract_mut_ref(pack) {
+    match extract_mut_ref(pack) {
         Ok(p) => {
             let str = CStr::from_ptr(path as *const _);
             let Ok(path) = str.to_str() else {
@@ -107,9 +125,13 @@ pub unsafe extern "C" fn meu3_package_has(pack: &PACKAGE, path: &c_char, err: &m
             *err = e;
             false
         }
-    };
+    }
 }
 #[no_mangle]
+/// Returns a pointer to a slice representing the data of a packaged file, len represents the
+/// length of the slice
+/// # Safety
+/// Internally this function does some pointer casting
 pub unsafe extern "C" fn meu3_package_get_data_ptr(
     pack: &mut PACKAGE,
     path: &c_char,
@@ -138,6 +160,9 @@ pub unsafe extern "C" fn meu3_package_get_data_ptr(
     }
 }
 #[no_mangle]
+/// Get the struct representing the version of a package
+/// # Safety
+/// Internally this function does some pointer casting
 pub unsafe extern "C" fn meu3_package_get_version(
     pack: &mut PACKAGE,
     err: &mut Error,
@@ -165,6 +190,9 @@ pub unsafe extern "C" fn meu3_package_get_version(
     }
 }
 #[no_mangle]
+/// Get the compression algorithm used by a package
+/// # Safety
+/// Internally this function does some pointer casting
 pub unsafe extern "C" fn meu3_package_get_compression(
     pack: &mut PACKAGE,
     err: &mut Error,
@@ -182,9 +210,9 @@ unsafe fn extract_mut_ref<'a, T>(val: *mut T) -> Result<&'a mut T, Error> {
     if val.is_null() {
         return Err(Error::ParameterWasNull);
     }
-    return if let Some(r) = val.as_mut() {
+    if let Some(r) = val.as_mut() {
         Ok(r)
     } else {
         Err(Error::FailedCast)
-    };
+    }
 }
