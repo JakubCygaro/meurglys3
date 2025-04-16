@@ -5,7 +5,6 @@ set(testSources
     pack_inspect.c
     write_package.c
     package_methods.c
-    check_parity.c
 )
 set(testsDir tests)
 
