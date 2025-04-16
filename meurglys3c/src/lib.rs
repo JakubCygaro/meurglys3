@@ -59,7 +59,7 @@ pub extern "C" fn meu3_free_package(package: &mut PACKAGE) {
     drop(pack);
 }
 #[no_mangle]
-/// Loads a package from a package file under the specified path
+/// Loads a package from a package file under the specified path;
 /// # Safety
 /// Internally this function does some pointer casting
 pub unsafe extern "C" fn meu3_load_package(dir_path: &c_char, err: &mut Error) -> *mut PACKAGE {
@@ -95,7 +95,10 @@ pub unsafe extern "C" fn meu3_write_package(
         *err = Error::StringError;
         return false;
     };
-    let Ok(path) = PathBuf::from_str(str);
+    let Ok(path) = PathBuf::from_str(str) else {
+        *err = Error::StringError;
+        return false;
+    };
     match meurglys3_lib::write_package(path, pack) {
         Ok(_) => true,
         Err(_e) => {
