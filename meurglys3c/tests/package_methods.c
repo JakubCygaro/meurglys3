@@ -14,7 +14,7 @@ int main(void) {
     (void)meu3_package_get_version(pack, &err);
     if (err != NoError)
         return 1;
-    size_t len = 0;
+    long long unsigned int len = 0;
     MEU3_BYTES data = meu3_package_get_data_ptr(pack, "text.txt", &len, &err);
     if (err != NoError || len == 0)
         return 1;

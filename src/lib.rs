@@ -59,7 +59,7 @@ pub fn package_dir(dir_path: PathBuf) -> Result<Package, err::PackingError> {
                 .into();
 
             Ok(FileInfo::new(
-                rel_path,
+                rel_path.to_path_buf(),
                 buf,
             ))
         })
