@@ -153,6 +153,9 @@ impl Package {
     pub fn compression(&self) -> Compression {
         self.compression
     }
+    pub fn get_names(&self) -> &HashMap<String, DataInfo> {
+        &self.names
+    }
 }
 
 impl std::fmt::Debug for Package {
