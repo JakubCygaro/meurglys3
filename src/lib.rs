@@ -1,10 +1,8 @@
 use crate::err::UnpackError;
 use bytes::Buf;
-use path_slash::PathExt as _;
 use std::collections::HashMap;
 use std::fs::{self, DirBuilder};
 use std::io::{Read, Write};
-use std::ops::Deref;
 use std::path::PathBuf;
 
 mod err;
@@ -49,7 +47,7 @@ pub fn package_dir(dir_path: PathBuf) -> Result<Package, err::PackingError> {
 
             let rel_path = full_path
                 .strip_prefix(&dir_path)
-                .map_err(|e| err::PackingError::FileReadingError(e))?;
+                .map_err(err::PackingError::FileReadingError)?;
 
             #[cfg(target_os = "windows")]
             let rel_path: PathBuf = rel_path
@@ -137,9 +135,9 @@ pub fn load_package(path_to_dir: PathBuf) -> Result<Package, err::UnpackError> {
 
 #[derive(PartialEq)]
 enum ParseState {
-    ReadingString,
-    ReadingIndex,
-    ReadingSize,
+    String,
+    Index,
+    Size,
 }
 
 fn read_data_table(
@@ -155,16 +153,16 @@ fn read_data_table(
     let reader = bytes.reader();
     let mut bytes = reader.bytes();
 
-    let mut state = ParseState::ReadingString;
+    let mut state = ParseState::String;
 
     let mut str = String::default();
     let mut index = 0;
 
     while let Some(Ok(b)) = bytes.next() {
-        if b == b'\0' && state == ParseState::ReadingString {
+        if b == b'\0' && state == ParseState::String {
             break;
         }
-        if state == ParseState::ReadingString {
+        if state == ParseState::String {
             let mut str_buf = vec![b];
             while let Some(str_byte) = bytes.next() {
                 let str_byte = str_byte?;
@@ -174,22 +172,22 @@ fn read_data_table(
                     break;
                 }
             }
-            state = ParseState::ReadingIndex;
+            state = ParseState::Index;
             str = String::from_utf8(str_buf)?;
-        } else if state == ParseState::ReadingIndex {
+        } else if state == ParseState::Index {
             let mut idx: [u8; 4] = [b; 4];
             for i in 1..4 {
                 idx[i] = bytes.next().ok_or_else(|| err::ParseError::Index)??;
             }
             index = u32::from_le_bytes(idx);
-            state = ParseState::ReadingSize;
-        } else if state == ParseState::ReadingSize {
+            state = ParseState::Size;
+        } else if state == ParseState::Size {
             let mut sz: [u8; 4] = [b; 4];
             for i in 1..4 {
                 sz[i] = bytes.next().ok_or_else(|| err::ParseError::Size)??;
             }
             let size = u32::from_le_bytes(sz);
-            state = ParseState::ReadingString;
+            state = ParseState::String;
             map.insert(str.clone(), DataInfo::new(index, size));
         }
     }
@@ -199,8 +197,8 @@ fn read_data_table(
 pub fn unpack_to_dir(dir_path: PathBuf, pack: &Package) -> std::io::Result<()> {
     DirBuilder::new().recursive(true).create(dir_path.clone())?;
     for (file_name, _info) in &pack.names {
-        let bytes = pack.get_data_ref(&file_name).unwrap();
-        let mut path = PathBuf::from(dir_path.clone());
+        let bytes = pack.get_data_ref(file_name).unwrap();
+        let mut path = dir_path.clone();
         path.push(file_name);
         if let Some(prefix) = path.parent() {
             fs::create_dir_all(prefix)?;

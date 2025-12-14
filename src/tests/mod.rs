@@ -123,9 +123,11 @@ fn test_packing_and_unpacking() -> Result<(), super::err::PackingError> {
     let dest_tmp = tempdir::TempDir::new("dest_tmp")?;
     super::unpack_to_dir(dest_tmp.path().to_path_buf(), &pack)?;
     let dest_path = dest_tmp.path();
-    let src_files = collect_dir(src_tmp.path())?;
-    let dest_files = collect_dir(dest_path)?;
+    let mut src_files = collect_dir(src_tmp.path())?;
+    let mut dest_files = collect_dir(dest_path)?;
     assert_eq!(src_files.len(), dest_files.len());
+    src_files.sort();
+    dest_files.sort();
     let _ = src_files
         .iter()
         .zip(dest_files.iter())

@@ -40,9 +40,8 @@ pub struct FileInfo {
 impl FileInfo {
     pub fn new(path: PathBuf, data: Vec<u8>) -> Self {
         Self {
-            data: data,
-            //ext: ext,
-            path: path,
+            data,
+            path,
         }
     }
 }
@@ -54,21 +53,14 @@ pub struct DataInfo {
 }
 impl DataInfo {
     pub fn new(index: u32, size: u32) -> Self {
-        Self {
-            index: index,
-            size: size,
-        }
+        Self { index, size }
     }
-    pub fn to_le_bytes(self) -> [u8; 8] {
+    pub fn to_le_bytes(&self) -> [u8; 8] {
         let mut buf = [0u8; 8];
         let idx = self.index.to_le_bytes();
-        for i in 0..3 {
-            buf[i] = idx[i];
-        }
+        buf[..3].copy_from_slice(&idx[..3]);
         let sz = self.size.to_le_bytes();
-        for i in 0..3 {
-            buf[i + 4] = sz[i];
-        }
+        buf[4..(3 + 4)].copy_from_slice(&sz[..3]);
         buf
     }
 }
@@ -125,26 +117,22 @@ impl Package {
         }
         Package {
             names: map,
-            data: data,
-            version: version,
-            compression: compression,
+            data,
+            version,
+            compression,
         }
     }
     pub fn has(&self, name: &str) -> bool {
         self.names.contains_key(name)
     }
     pub fn get_data(&self, name: &str) -> Option<Vec<u8>> {
-        let Some(data) = self.names.get(name) else {
-            return None;
-        };
-        let mut ret = vec![];
+        let data = self.names.get(name)?;
+        let mut ret = Vec::with_capacity(data.size as usize);
         ret.copy_from_slice(&self.data[data.index as usize..(data.index + data.size) as usize]);
         Some(ret)
     }
     pub fn get_data_ref(&self, name: &str) -> Option<&[u8]> {
-        let Some(data) = self.names.get(name) else {
-            return None;
-        };
+        let data = self.names.get(name)?;
         Some(&self.data[data.index as usize..(data.index + data.size) as usize])
     }
     pub fn version(&self) -> PackageVersion {
