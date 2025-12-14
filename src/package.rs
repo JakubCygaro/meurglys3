@@ -127,7 +127,7 @@ impl Package {
     }
     pub fn get_data(&self, name: &str) -> Option<Vec<u8>> {
         let data = self.names.get(name)?;
-        let mut ret = Vec::with_capacity(data.size as usize);
+        let mut ret = vec![0; data.size as usize];
         ret.copy_from_slice(&self.data[data.index as usize..(data.index + data.size) as usize]);
         Some(ret)
     }
