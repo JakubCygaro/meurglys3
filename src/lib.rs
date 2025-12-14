@@ -4,6 +4,8 @@ use std::collections::HashMap;
 use std::fs::{self, DirBuilder};
 use std::io::{Read, Write};
 use std::path::PathBuf;
+#[cfg(target_os = "windows")]
+use path_slash::{PathExt, PathBufExt};
 
 mod err;
 mod package;
