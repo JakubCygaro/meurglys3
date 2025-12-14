@@ -55,7 +55,7 @@ pub fn package_dir(dir_path: PathBuf) -> Result<Package, err::PackingError> {
             let rel_path: PathBuf = rel_path
                 .to_slash()
                 .expect("slash replacement in file path failed, file path must contain non-unicode characters")
-                .deref()
+                .to_string()
                 .into();
 
             Ok(FileInfo::new(
