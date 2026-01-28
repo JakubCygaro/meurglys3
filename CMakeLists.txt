@@ -23,15 +23,19 @@ set(meu3LinkDirectory
     ${CMAKE_CURRENT_SOURCE_DIR}/target/release
     ${CMAKE_CURRENT_SOURCE_DIR}/target/debug
 )
-set(meu3StaticLibTargetDir "${CMAKE_SOURCE_DIR}/target/meu3_cmake")
+set(meu3StaticLibTargetDir "${CMAKE_CURRENT_SOURCE_DIR}/target/meu3_cmake")
 
 # Build meurglys3c manually into a special directory
 message(STATUS "Building meurglys3c library")
-execute_process(COMMAND cargo  build -r --target-dir ${meu3StaticLibTargetDir}
+execute_process(COMMAND cargo build -r --target-dir ${meu3StaticLibTargetDir}
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/meurglys3c
     RESULT_VARIABLE cargoMakeResult
     OUTPUT_VARIABLE cargoMakeOutput
     ERROR_VARIABLE cargoMakeError
+)
+message(STATUS "Generating meurglys3c header file")
+execute_process(COMMAND cbindgen --config cbindgen.toml --output ${meu3Include}/meu3.h
+    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/meurglys3c
 )
 if (cargoMakeResult)
     message(FATAL_ERROR "Failed to build the rust project")
