@@ -74,7 +74,7 @@ string(REPLACE ";" " " linkerFlags "${meu3LibsToLink}")
 message(STATUS "To link: ${linkerFlags}")
 configure_file(LinkerFlags.txt.in ${meu3StaticLibTargetDir}/LinkerFlags.txt @ONLY)
 
-set(meu3LinkLibs TYPE STRING "${meu3LibsToLink}" CACHE INTERNAL "meu3LinkLibraries")
+set(meu3LinkLibs ${meu3LibsToLink} CACHE INTERNAL "meu3LinkLibraries")
 set(meu3StaticLibs "${meu3StaticLib}" CACHE INTERNAL "meu3StaticLib")
 set(meu3IncludeDirs "${meu3Include}" CACHE INTERNAL "meu3Include")
 
