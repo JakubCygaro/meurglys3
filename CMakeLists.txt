@@ -60,7 +60,6 @@ if (rustcResult)
     message(FATAL_ERROR "${rustcOutput}")
 endif()
 
-# set(libsToLinkRegex "native-static-libs: \(.* -l.*\) +\\a" )
 set(libsToLinkRegex "native-static-libs: \(.*\) +F" )
 # output like so:
 # note: native-static-libs: -lkernel32 -ladvapi32 -lntdll -luserenv -lws2_32 -lkernel32
@@ -74,6 +73,11 @@ string(REPLACE ";" " " linkerFlags "${meu3LibsToLink}")
 
 message(STATUS "To link: ${linkerFlags}")
 configure_file(LinkerFlags.txt.in ${meu3StaticLibTargetDir}/LinkerFlags.txt @ONLY)
+
+set(meu3LinkLibs "${meu3LibsToLink}" CACHE INTERNAL "meu3LinkLibraries")
+set(meu3StaticLibs "${meu3StaticLib}" CACHE INTERNAL "meu3StaticLib")
+set(meu3IncludeDirs "${meu3Include}" CACHE INTERNAL "meu3Include")
+
 if(MEU3_BUILD_TESTS)
     add_subdirectory(meurglys3c)
 endif()
