@@ -6,12 +6,12 @@ set(testSources
     write_package.c
     package_methods.c
 )
-set(testsDir tests)
+set(meu3TestsDir ${CMAKE_CURRENT_SOURCE_DIR}/tests)
 
 foreach(source IN LISTS testSources)
-    set(testExe ${source}_test)
+    set(testExe meu3_${source}_test)
     add_executable(${testExe}
-        ${testsDir}/${source}
+        ${meu3TestsDir}/${source}
     )
     target_include_directories(${testExe}
         PRIVATE ${meu3Include}
@@ -21,13 +21,13 @@ foreach(source IN LISTS testSources)
     )
     target_link_libraries(${testExe}
         ${meu3StaticLib}
-        ${libsToLink}
+        ${meu3LibsToLink}
     )
-    add_test(NAME ${source}.test
+    add_test(NAME meu3_${source}.test
         COMMAND ${testExe}
         WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
     )
 endforeach()
 
-file(COPY tests/test_dir DESTINATION .)
+file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/tests/test_dir DESTINATION .)
 file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/dump)

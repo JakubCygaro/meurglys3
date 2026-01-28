@@ -65,13 +65,15 @@ set(libsToLinkRegex "native-static-libs: \(.*\) +F" )
 # output like so:
 # note: native-static-libs: -lkernel32 -ladvapi32 -lntdll -luserenv -lws2_32 -lkernel32
 string(REPLACE "\n" ";" split ${rustcOutput})
-string(REGEX MATCH ${libsToLinkRegex} libsToLink ${split})
-set(libsToLink ${CMAKE_MATCH_1})
-string(REPLACE " " ";" libsToLink ${libsToLink})
-list(FILTER libsToLink INCLUDE REGEX "[^ ]")
+string(REGEX MATCH ${libsToLinkRegex} meu3LibsToLink ${split})
+set(meu3LibsToLink ${CMAKE_MATCH_1})
+string(REPLACE " " ";" meu3LibsToLink ${meu3LibsToLink})
+list(FILTER meu3LibsToLink INCLUDE REGEX "[^ ]")
 
-string(REPLACE ";" " " linkerFlags "${libsToLink}")
+string(REPLACE ";" " " linkerFlags "${meu3LibsToLink}")
 
 message(STATUS "To link: ${linkerFlags}")
 configure_file(LinkerFlags.txt.in ${meu3StaticLibTargetDir}/LinkerFlags.txt @ONLY)
-add_subdirectory(meurglys3c)
+if(MEU3_BUILD_TESTS)
+    add_subdirectory(meurglys3c)
+endif()
