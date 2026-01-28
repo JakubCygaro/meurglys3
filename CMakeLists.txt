@@ -17,18 +17,18 @@ if(NOT ${CMAKE_CONFIGURATION_TYPES})
 endif()
 
 set(meu3Include
-    ${CMAKE_SOURCE_DIR}/target/include
+    ${CMAKE_CURRENT_SOURCE_DIR}/target/include
 )
 set(meu3LinkDirectory
-    ${CMAKE_SOURCE_DIR}/target/release
-    ${CMAKE_SOURCE_DIR}/target/debug
+    ${CMAKE_CURRENT_SOURCE_DIR}/target/release
+    ${CMAKE_CURRENT_SOURCE_DIR}/target/debug
 )
 set(meu3StaticLibTargetDir "${CMAKE_SOURCE_DIR}/target/meu3_cmake")
 
 # Build meurglys3c manually into a special directory
 message(STATUS "Building meurglys3c library")
 execute_process(COMMAND cargo  build -r --target-dir ${meu3StaticLibTargetDir}
-    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/meurglys3c
+    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/meurglys3c
     RESULT_VARIABLE cargoMakeResult
     OUTPUT_VARIABLE cargoMakeOutput
     ERROR_VARIABLE cargoMakeError
