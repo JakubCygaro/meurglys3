@@ -48,8 +48,8 @@ impl FileInfo {
 
 #[derive(Clone, Debug)]
 pub struct DataInfo {
-    index: u32,
-    size: u32,
+    pub(crate) index: u32,
+    pub(crate) size: u32,
 }
 impl DataInfo {
     pub fn new(index: u32, size: u32) -> Self {
@@ -93,8 +93,7 @@ impl Into<[u8; 2]> for Compression {
 }
 
 pub struct Package {
-    pub(crate) names: HashMap<String, DataInfo>,
-    pub(crate) data: Vec<u8>,
+    pub(crate) names: HashMap<String, Vec<u8>>,
     pub(crate) version: PackageVersion,
     pub(crate) compression: Compression,
 }
@@ -106,18 +105,11 @@ impl Package {
         compression: Compression,
     ) -> Self {
         let mut map = HashMap::new();
-        let mut data: Vec<u8> = vec![];
         for file_info in value {
-            let data_info = DataInfo {
-                index: data.len() as u32,
-                size: file_info.data.len() as u32,
-            };
-            map.insert(file_info.path.to_string_lossy().to_string(), data_info);
-            data.write_all(&file_info.data[..]).unwrap();
+            map.insert(file_info.path.to_string_lossy().to_string(), file_info.data);
         }
         Package {
             names: map,
-            data,
             version,
             compression,
         }
@@ -126,14 +118,10 @@ impl Package {
         self.names.contains_key(name)
     }
     pub fn get_data(&self, name: &str) -> Option<Vec<u8>> {
-        let data = self.names.get(name)?;
-        let mut ret = vec![0; data.size as usize];
-        ret.copy_from_slice(&self.data[data.index as usize..(data.index + data.size) as usize]);
-        Some(ret)
+        self.names.get(name).cloned()
     }
     pub fn get_data_ref(&self, name: &str) -> Option<&[u8]> {
-        let data = self.names.get(name)?;
-        Some(&self.data[data.index as usize..(data.index + data.size) as usize])
+        self.names.get(name).map(|v| v.as_slice())
     }
     pub fn version(&self) -> PackageVersion {
         self.version
@@ -141,8 +129,11 @@ impl Package {
     pub fn compression(&self) -> Compression {
         self.compression
     }
-    pub fn get_names(&self) -> &HashMap<String, DataInfo> {
+    pub fn get_names(&self) -> &HashMap<String, Vec<u8>> {
         &self.names
+    }
+    pub fn insert_data(&mut self, name: String, data: Vec<u8>) {
+        self.names.insert(name, data);
     }
 }
 
@@ -150,7 +141,6 @@ impl std::fmt::Debug for Package {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("Package")
             .field("names", &self.names)
-            .field("data", &self.data)
             .finish()
     }
 }

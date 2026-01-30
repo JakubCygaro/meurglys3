@@ -1,11 +1,11 @@
 use crate::err::UnpackError;
 use bytes::Buf;
+#[cfg(target_os = "windows")]
+use path_slash::{PathBufExt, PathExt};
 use std::collections::HashMap;
 use std::fs::{self, DirBuilder};
 use std::io::{Read, Write};
 use std::path::PathBuf;
-#[cfg(target_os = "windows")]
-use path_slash::{PathExt, PathBufExt};
 
 mod err;
 mod package;
@@ -66,7 +66,7 @@ pub fn package_dir(dir_path: PathBuf) -> Result<Package, err::PackingError> {
         .collect::<Result<Vec<_>, err::PackingError>>()?;
     Ok(Package::from_file_info(
         files,
-        PackageVersion::from((0, 0, 0, 1)),
+        PackageVersion::from((0, 0, 0, 2)),
         Compression::None,
     ))
 }
@@ -81,14 +81,23 @@ pub fn write_package(mut path: PathBuf, package: &mut Package) -> std::io::Resul
     let comp: [u8; 2] = package.compression.into();
     buf.write_all(&comp)?;
 
+    let mut package_data = vec![];
+
     for (name, data) in &package.names {
         buf.write_all(name.as_bytes())?;
         buf.write_all(&[0x00])?;
-        buf.write_all(&data.clone().to_le_bytes())?;
+        let mut dbuf = [0u8; 8];
+        let index = package_data.len();
+        let idx = index.to_le_bytes();
+        dbuf[..3].copy_from_slice(&idx[..3]);
+        let sz = (data.len() as u32).to_le_bytes();
+        dbuf[4..7].copy_from_slice(&sz[..3]);
+        buf.write_all(&dbuf[..])?;
+        package_data.write_all(data.as_slice())?;
     }
     buf.write_all(&[0x0])?;
 
-    buf.write_all(&package.data[..])?;
+    buf.write_all(&package_data[..])?;
     path.set_extension("m3pkg");
     let mut file = fs::File::create(path)?;
 
@@ -120,15 +129,22 @@ pub fn load_package(path_to_dir: PathBuf) -> Result<Package, err::UnpackError> {
 
     use err::UnsupportedError;
     match (version.ver, compression) {
-        ((0, 0, 0, 1), Compression::None) => {
+        ((0, 0, 0, 1..), Compression::None) => {
             let (map, bytes) = read_data_table(&mut remain)?;
             let data: Vec<u8> = bytes.collect::<Result<_, _>>()?;
 
+            let map = map
+                .into_iter()
+                .map(|(k, v)| {
+                    let d = data[v.index as usize..(v.index + v.size) as usize].to_owned();
+                    (k, d)
+                })
+                .collect::<HashMap<String, Vec<u8>>>();
+
             Ok(Package {
                 names: map,
-                data: data,
-                version: version,
-                compression: compression,
+                version,
+                compression,
             })
         }
         (_, Compression::None) => Err(UnpackError::UnsupportedFormat(UnsupportedError::Version)),
