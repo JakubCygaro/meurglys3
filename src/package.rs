@@ -1,5 +1,4 @@
 use std::collections::HashMap;
-use std::io::Write;
 use std::path::PathBuf;
 
 use super::err;
@@ -54,14 +53,6 @@ pub struct DataInfo {
 impl DataInfo {
     pub fn new(index: u32, size: u32) -> Self {
         Self { index, size }
-    }
-    pub fn to_le_bytes(&self) -> [u8; 8] {
-        let mut buf = [0u8; 8];
-        let idx = self.index.to_le_bytes();
-        buf[..3].copy_from_slice(&idx[..3]);
-        let sz = self.size.to_le_bytes();
-        buf[4..(3 + 4)].copy_from_slice(&sz[..3]);
-        buf
     }
 }
 
@@ -134,6 +125,9 @@ impl Package {
     }
     pub fn insert_data(&mut self, name: String, data: Vec<u8>) {
         self.names.insert(name, data);
+    }
+    pub fn remove_data(&mut self, name: &str) {
+        self.names.remove(name);
     }
 }
 

@@ -66,7 +66,7 @@ fn main() {
             unpack(dir, out);
         }
         Target::Check { dir, check } => {
-            let pack = meurglys3_lib::load_package(dir.clone()).expect(&format!(
+            let pack = meurglys3_lib::load_package(dir.clone()).unwrap_or_else(|_| panic!(
                 "could not load package at `{}`",
                 dir.to_str().unwrap_or_default()
             ));

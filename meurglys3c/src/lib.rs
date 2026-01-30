@@ -95,10 +95,7 @@ pub unsafe extern "C" fn meu3_write_package(
         *err = Error::StringError;
         return false;
     };
-    let Ok(path) = PathBuf::from_str(str) else {
-        *err = Error::StringError;
-        return false;
-    };
+    let Ok(path) = PathBuf::from_str(str);
     match meurglys3_lib::write_package(path, pack) {
         Ok(_) => true,
         Err(_e) => {

@@ -214,7 +214,7 @@ fn read_data_table(
 
 pub fn unpack_to_dir(dir_path: PathBuf, pack: &Package) -> std::io::Result<()> {
     DirBuilder::new().recursive(true).create(dir_path.clone())?;
-    for (file_name, _info) in &pack.names {
+    for file_name in pack.names.keys() {
         let bytes = pack.get_data_ref(file_name).unwrap();
         let mut path = dir_path.clone();
         path.push(file_name);
