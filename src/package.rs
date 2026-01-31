@@ -119,7 +119,7 @@ impl Package {
     pub fn compression(&self) -> Compression {
         self.compression
     }
-    pub fn get_names(&self) -> &HashMap<String, Vec<u8>> {
+    pub fn get_files(&self) -> &HashMap<String, Vec<u8>> {
         &self.names
     }
     pub fn insert_data(&mut self, name: String, data: Vec<u8>) -> Result<(), err::InsertError> {

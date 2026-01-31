@@ -1,7 +1,7 @@
 use libc::{c_char, c_uchar, c_ulonglong, c_void};
 pub use meurglys3_lib::Compression;
 use meurglys3_lib::{self, Package};
-use std::ffi::CStr;
+use std::ffi::{CStr, CString};
 use std::path::PathBuf;
 use std::ptr::{self, null_mut};
 use std::str::FromStr;
@@ -31,6 +31,12 @@ pub struct PackageVersion {
     pub minor: c_uchar,
     pub tweak: c_uchar,
     pub patch: c_uchar,
+}
+#[repr(C)]
+pub struct FileList {
+    pub len: usize,
+    pub cap: usize,
+    pub data: *mut *mut c_char,
 }
 
 pub type PACKAGE = c_void;
@@ -249,6 +255,49 @@ pub unsafe extern "C" fn meu3_package_insert(
     ptr::copy(data, d.as_mut_ptr(), data_len);
     let res = (*package).insert_data(path.to_string(), d);
     res.inspect_err(|_| *err = Error::InsertError).is_ok()
+}
+
+#[no_mangle]
+/// Get an allocated list of allocated null terminated strings that are the paths of files in this
+/// package
+/// # Safety
+/// Internally this function does some pointer casting
+pub unsafe extern "C" fn meu3_package_get_file_list(
+    pack: &mut PACKAGE,
+    err: &mut Error,
+) -> FileList {
+    *err = Error::NoError;
+    let package = pack as *mut c_void as *mut Package;
+    let mut files = (*package)
+        .get_files()
+        .keys()
+        .cloned()
+        .map(|s| CString::from_str(&s).unwrap())
+        .collect::<Vec<_>>();
+    files.sort();
+    let mut files = files.into_iter().map(CString::into_raw).collect::<Vec<_>>();
+    let len = files.len();
+    let cap = files.capacity();
+    let ptr = files.as_mut_ptr();
+    std::mem::forget(files);
+    FileList {
+        len,
+        cap,
+        data: ptr,
+    }
+}
+#[no_mangle]
+/// Get an allocated list of allocated null terminated strings that are the paths of files in this
+/// package
+/// # Safety
+/// Internally this function does some pointer casting
+pub unsafe extern "C" fn meu3_free_file_list(file_list: FileList) {
+    let files = Vec::from_raw_parts(file_list.data, file_list.len, file_list.cap);
+    let files = files
+        .into_iter()
+        .map(|ptr| CString::from_raw(ptr))
+        .collect::<Vec<_>>();
+    drop(files)
 }
 unsafe fn extract_mut_ref<'a, T>(val: *mut T) -> Result<&'a mut T, Error> {
     if val.is_null() {

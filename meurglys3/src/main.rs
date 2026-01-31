@@ -71,17 +71,21 @@ fn main() {
             unpack(dir, out);
         }
         Target::Check { dir, check } => {
-            let pack = meurglys3_lib::load_package(dir.clone()).unwrap_or_else(|_| panic!(
-                "could not load package at `{}`",
-                dir.to_str().unwrap_or_default()
-            ));
+            let pack = meurglys3_lib::load_package(dir.clone()).unwrap_or_else(|_| {
+                panic!(
+                    "could not load package at `{}`",
+                    dir.to_str().unwrap_or_default()
+                )
+            });
             check_pack(&check, &pack)
         }
         Target::List { dir } => {
-            let pack = meurglys3_lib::load_package(dir.clone()).unwrap_or_else(|_| panic!(
-                "could not load package at `{}`",
-                dir.to_str().unwrap_or_default()
-            ));
+            let pack = meurglys3_lib::load_package(dir.clone()).unwrap_or_else(|_| {
+                panic!(
+                    "could not load package at `{}`",
+                    dir.to_str().unwrap_or_default()
+                )
+            });
             list_pack(&pack)
         }
     };
@@ -101,7 +105,7 @@ fn check_pack(names: &Vec<String>, pack: &Package) {
     }
 }
 fn list_pack(pack: &Package) {
-    let mut files = pack.get_names().keys().cloned().collect::<Vec<_>>();
+    let mut files = pack.get_files().keys().cloned().collect::<Vec<_>>();
     files.sort();
     for f in files {
         println!("{f}");
