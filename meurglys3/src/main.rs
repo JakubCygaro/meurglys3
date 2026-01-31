@@ -52,6 +52,11 @@ enum Target {
         #[clap(value_parser, num_args = 1.., value_delimiter = ',')]
         check: Vec<String>,
     },
+    #[command(about = "List contained files", long_about = None)]
+    List {
+        #[arg(help = "source .m3pkg file")]
+        dir: PathBuf,
+    },
 }
 
 fn main() {
@@ -72,11 +77,17 @@ fn main() {
             ));
             check_pack(&check, &pack)
         }
+        Target::List { dir } => {
+            let pack = meurglys3_lib::load_package(dir.clone()).unwrap_or_else(|_| panic!(
+                "could not load package at `{}`",
+                dir.to_str().unwrap_or_default()
+            ));
+            list_pack(&pack)
+        }
     };
 }
 fn unpack(source: PathBuf, dest: PathBuf) -> Package {
     let pack = meurglys3_lib::load_package(source).expect("unpack failed");
-    //println!("{:?}", pack)
     meurglys3_lib::unpack_to_dir(dest, &pack).unwrap();
     pack
 }
@@ -87,5 +98,12 @@ fn check_pack(names: &Vec<String>, pack: &Package) {
         } else {
             println!("The package does not contain `{n}`")
         }
+    }
+}
+fn list_pack(pack: &Package) {
+    let mut files = pack.get_names().keys().cloned().collect::<Vec<_>>();
+    files.sort();
+    for f in files {
+        println!("{f}");
     }
 }
