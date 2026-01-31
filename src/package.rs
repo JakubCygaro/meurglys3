@@ -1,6 +1,8 @@
 use std::collections::HashMap;
 use std::path::PathBuf;
 
+use path_slash::{PathBufExt, PathExt};
+
 use super::err;
 
 #[derive(Clone, Copy)]
@@ -38,10 +40,7 @@ pub struct FileInfo {
 }
 impl FileInfo {
     pub fn new(path: PathBuf, data: Vec<u8>) -> Self {
-        Self {
-            data,
-            path,
-        }
+        Self { data, path }
     }
 }
 
@@ -123,8 +122,25 @@ impl Package {
     pub fn get_names(&self) -> &HashMap<String, Vec<u8>> {
         &self.names
     }
-    pub fn insert_data(&mut self, name: String, data: Vec<u8>) {
+    pub fn insert_data(&mut self, name: String, data: Vec<u8>) -> Result<(), err::InsertError> {
+        let has_moves = name.contains("..");
+        if has_moves {
+            return Err(err::InsertError::ProhibitedPath);
+        }
+        let as_path = PathBuf::from(&name);
+        let as_path: PathBuf = as_path
+            .to_slash()
+            .ok_or(err::InsertError::NotAFilePath)?
+            .to_string()
+            .into();
+        let has_root = as_path.has_root();
+        let is_absolute = as_path.is_absolute();
+        let is_file = as_path.file_stem().is_some();
+        if has_root || is_absolute || !is_file {
+            return Err(err::InsertError::ProhibitedPath);
+        }
         self.names.insert(name, data);
+        Ok(())
     }
     pub fn remove_data(&mut self, name: &str) {
         self.names.remove(name);

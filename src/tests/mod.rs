@@ -1,4 +1,5 @@
 use lazy_static::lazy_static;
+use std::error::Error;
 use std::fs::{DirBuilder, File};
 use std::io;
 use std::io::{Read, Write};
@@ -160,6 +161,56 @@ fn test_pack_and_save() -> Result<(), super::err::PackingError> {
     out_file.set_extension("m3pkg");
     let pack = super::load_package(out_file);
     assert!(pack.is_ok());
+    drop(src_tmp);
+    drop(dest_tmp);
+    Ok(())
+}
+#[test]
+fn test_insert() -> Result<(), Box<dyn Error>> {
+    let src_tmp = create_test_directory(&PACKING_TEST_MODEL)?;
+    let mut pack = super::package_dir(src_tmp.path().to_path_buf())?;
+    //now insert random binary data as a new file
+    let insert_file = "directory/inserted.bin".to_owned();
+    let mut insert_data = [0u8; 64];
+    rand::fill(&mut insert_data);
+    pack.insert_data(insert_file.clone(), insert_data.to_vec())?;
+
+    //this should not be allowed to be inserted
+    let prohibited = vec!["../prohibited.bin", "/prohibited.bin", "/."]
+        .into_iter()
+        .map(String::from)
+        .collect::<Vec<_>>();
+    for p in prohibited {
+        let res = pack.insert_data(p, insert_data.to_vec());
+        assert!(res.is_err());
+    }
+
+    let dest_tmp = tempdir::TempDir::new("dest_tmp")?;
+    let mut out_file = dest_tmp.path().join("pack");
+    super::write_package(out_file.clone(), &mut pack)?;
+    out_file.set_extension("m3pkg");
+    let pack = super::load_package(out_file);
+    assert!(pack.is_ok());
+    let pack = pack.unwrap();
+    assert!(pack.has(&insert_file));
+    drop(src_tmp);
+    drop(dest_tmp);
+    Ok(())
+}
+#[test]
+fn test_remove() -> Result<(), Box<dyn Error>> {
+    let src_tmp = create_test_directory(&PACKING_TEST_MODEL)?;
+    let mut pack = super::package_dir(src_tmp.path().to_path_buf())?;
+    let removed_file = "directory/text_file.txt";
+    pack.remove_data(removed_file);
+    let dest_tmp = tempdir::TempDir::new("dest_tmp")?;
+    let mut out_file = dest_tmp.path().join("pack");
+    super::write_package(out_file.clone(), &mut pack)?;
+    out_file.set_extension("m3pkg");
+    let pack = super::load_package(out_file);
+    assert!(pack.is_ok());
+    let pack = pack.unwrap();
+    assert!(!pack.has(removed_file));
     drop(src_tmp);
     drop(dest_tmp);
     Ok(())

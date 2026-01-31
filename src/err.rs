@@ -58,3 +58,11 @@ pub enum PackingError {
     #[error(transparent)]
     IoError(#[from] std::io::Error),
 }
+
+#[derive(Error, Debug)]
+pub enum InsertError {
+    #[error("not a file path")]
+    NotAFilePath,
+    #[error("prohibited path")]
+    ProhibitedPath,
+}
