@@ -193,6 +193,7 @@ fn test_insert() -> Result<(), Box<dyn Error>> {
     assert!(pack.is_ok());
     let pack = pack.unwrap();
     assert!(pack.has(&insert_file));
+    assert!(pack.get_data_ref(&insert_file).unwrap().eq(&insert_data[..]));
     drop(src_tmp);
     drop(dest_tmp);
     Ok(())

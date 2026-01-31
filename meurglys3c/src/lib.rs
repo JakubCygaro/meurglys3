@@ -22,6 +22,8 @@ pub enum Error {
     WritePackageError,
     /// Error with paths
     PathError,
+    /// Error with inserting data
+    InsertError,
 }
 #[repr(C)]
 pub struct PackageVersion {
@@ -205,6 +207,48 @@ pub unsafe extern "C" fn meu3_package_get_compression(
             meurglys3_lib::Compression::None
         }
     }
+}
+#[no_mangle]
+/// Remove a file from the package under the specified path
+/// # Safety
+/// Internally this function does some pointer casting
+pub unsafe extern "C" fn meu3_package_remove(
+    pack: &mut PACKAGE,
+    path: &c_char,
+    err: &mut Error,
+) -> bool {
+    *err = Error::NoError;
+    let package = pack as *mut c_void as *mut Package;
+    let str = CStr::from_ptr(path as *const _);
+    let Ok(path) = str.to_str() else {
+        *err = Error::StringError;
+        return false;
+    };
+    (*package).remove_data(path);
+    true
+}
+#[no_mangle]
+/// Insert data into the package under the specified path
+/// # Safety
+/// Internally this function does some pointer casting
+pub unsafe extern "C" fn meu3_package_insert(
+    pack: &mut PACKAGE,
+    path: &c_char,
+    data: BYTES,
+    data_len: usize,
+    err: &mut Error,
+) -> bool {
+    *err = Error::NoError;
+    let package = pack as *mut c_void as *mut Package;
+    let str = CStr::from_ptr(path as *const _);
+    let Ok(path) = str.to_str() else {
+        *err = Error::StringError;
+        return false;
+    };
+    let mut d = vec![0u8; data_len];
+    ptr::copy(data, d.as_mut_ptr(), data_len);
+    let res = (*package).insert_data(path.to_string(), d);
+    res.inspect_err(|_| *err = Error::InsertError).is_ok()
 }
 unsafe fn extract_mut_ref<'a, T>(val: *mut T) -> Result<&'a mut T, Error> {
     if val.is_null() {

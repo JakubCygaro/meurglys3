@@ -5,6 +5,8 @@ set(testSources
     pack_inspect.c
     write_package.c
     package_methods.c
+    insert_into_package.c
+    remove_from_package.c
 )
 set(meu3TestsDir ${CMAKE_CURRENT_SOURCE_DIR}/tests)
 
