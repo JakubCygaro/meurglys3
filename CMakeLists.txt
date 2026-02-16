@@ -6,7 +6,7 @@ set(allowedBuilds
     Debug
     Release
 )
-if(NOT ${CMAKE_CONFIGURATION_TYPES})
+if(NOT CMAKE_CONFIGURATION_TYPES)
     if(NOT ${CMAKE_BUILD_TYPE})
         set(${CMAKE_BUILD_TYPE} Debug)
     endif()
