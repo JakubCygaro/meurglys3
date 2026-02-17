@@ -38,8 +38,9 @@ execute_process(COMMAND cbindgen --config cbindgen.toml --output ${meu3Include}/
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/meurglys3c
 )
 if (cargoMakeResult)
+message(STATUS "${cargoMakeOutput}")
+message(STATUS "${cargoMakeError}")
     message(FATAL_ERROR "Failed to build the rust project")
-    message(FATAL_ERROR "${cargoMakeError}")
 endif()
 message(STATUS "All crates successfully built")
 # Find the static library
