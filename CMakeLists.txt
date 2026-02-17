@@ -16,12 +16,11 @@ if(NOT CMAKE_CONFIGURATION_TYPES)
     endif()
 endif()
 
+find_program(hasCargo cargo REQUIRED)
+find_program(hasCBindGen cbindgen REQUIRED)
+
 set(meu3Include
     ${CMAKE_CURRENT_SOURCE_DIR}/target/include
-)
-set(meu3LinkDirectory
-    ${CMAKE_CURRENT_SOURCE_DIR}/target/release
-    ${CMAKE_CURRENT_SOURCE_DIR}/target/debug
 )
 set(meu3StaticLibTargetDir "${CMAKE_CURRENT_SOURCE_DIR}/target/meu3_cmake")
 
@@ -38,8 +37,8 @@ execute_process(COMMAND cbindgen --config cbindgen.toml --output ${meu3Include}/
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/meurglys3c
 )
 if (cargoMakeResult)
-message(STATUS "${cargoMakeOutput}")
-message(STATUS "${cargoMakeError}")
+    message(STATUS "${cargoMakeOutput}")
+    message(STATUS "${cargoMakeError}")
     message(FATAL_ERROR "Failed to build the rust project")
 endif()
 message(STATUS "All crates successfully built")
@@ -61,8 +60,8 @@ execute_process(
     ERROR_STRIP_TRAILING_WHITESPACE
 )
 if (rustcResult)
+    message(STATUS "${rustcOutput}")
     message(FATAL_ERROR "Failed to build the rust project with cargo make")
-    message(FATAL_ERROR "${rustcOutput}")
 endif()
 
 set(libsToLinkRegex "native-static-libs: \(.*\) +F" )
